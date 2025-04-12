@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using UnityEngine;
 using Zenject;
 
 public class InventoryStorage
@@ -8,6 +9,7 @@ public class InventoryStorage
     private List<InventoryItem> _items = new List<InventoryItem>();
     private List<InventoryItemConfig> _itemConfigs = new List<InventoryItemConfig>();
     private Randomizer _randomizer;
+    private StackingController _stackingController;
 
     private int _maxItemsCount;
 
@@ -17,8 +19,9 @@ public class InventoryStorage
     private const string _cahngeAnimalStateFailedMessage = "There are no animals in the inventory!";
     private const int _minCountItems = 1;
 
-    public event Action InventoryChanged;
+    public event Action<InventoryItem> InventoryItemRemoved;
     public event Action<InventoryItem> InventoryItemAdded;
+    public event Action<InventoryItem> AnimalStateChanged;
     public event Action<string> InventoryChangeFailed;
 
     [Inject]
@@ -27,6 +30,13 @@ public class InventoryStorage
         _maxItemsCount = gameConfig.InventoryItemConfigsPack.MaxItemsCount;
         _itemConfigs.AddRange(gameConfig.InventoryItemConfigsPack.Configs);
         _randomizer = randomizer;
+    }
+
+    public void Init()
+    {
+        _stackingController = new StackingController(_randomizer, _minCountItems);
+        _stackingController.StackingSuccesed += OnStackingSuccesed;
+        _stackingController.StackingFailed += OnStackingFailed;
     }
 
     public List<InventoryItem> GetInventoryItems()
@@ -51,19 +61,27 @@ public class InventoryStorage
         }
         else
         {
-            var results = _itemConfigs.Where(s => s.ItemType == type);
+            var typeFilter = _itemConfigs.Where(s => s.ItemType == type);
             List<InventoryItemConfig> itemConfigs = new List<InventoryItemConfig>();
-            itemConfigs.AddRange(results);
+            itemConfigs.AddRange(typeFilter);
             AddItem(GetRandomConfig(itemConfigs));
         }
     }
 
     private void AddItem(InventoryItemConfig config)
     {
-        var item = new InventoryItem(config);
+        var item = GetInventoryItem(config);
         _items.Add(item);
-        InventoryChanged?.Invoke();
         InventoryItemAdded?.Invoke(item);
+    }
+
+    private InventoryItem GetInventoryItem(InventoryItemConfig config)
+    {
+        return config.ItemType switch
+        {
+            InventoryItemType.Animal => new AnimalItem(config),
+            _ => new InventoryItem(config),
+        };
     }
 
     private InventoryItemConfig GetRandomConfig(List<InventoryItemConfig> itemConfigs)
@@ -92,7 +110,7 @@ public class InventoryStorage
     private void RemoveItem(InventoryItem inventoryItem)
     {
         _items.Remove(inventoryItem);
-        InventoryChanged?.Invoke();
+        InventoryItemRemoved?.Invoke(inventoryItem);
     }
 
     private InventoryItem GetRandomItem(List<InventoryItem> items)
@@ -107,10 +125,8 @@ public class InventoryStorage
         List<InventoryItem> items = new List<InventoryItem>();
 
         for (int i = 0; i < _items.Count; i++)
-        {
             if (_items[i].Type == InventoryItemType.Animal)
                 items.Add(_items[i]);
-        }
 
         if (items.Count < _minCountItems)
             InventoryChangeFailed?.Invoke(_cahngeAnimalStateFailedMessage);
@@ -120,54 +136,29 @@ public class InventoryStorage
 
     private void ChangeAnimalState(InventoryItem inventoryItem)
     {
-        // I did not have time for Dedlin ((
+        List<InventoryItem> items = _items.FindAll(x => x.Type == InventoryItemType.Animal);
+        int randomIndex = _randomizer.GetRandomInteger(0, items.Count);
+        var animalItem = items[randomIndex] as AnimalItem;
+        animalItem.ChangeState();
+        AnimalStateChanged?.Invoke(animalItem);
     }
     #endregion
 
     #region Stacking
     public void TryMergeItems()
     {
-        List<InventoryItem> items = new List<InventoryItem>();
-        items.AddRange(_items);
-
-        for (int i = 0; i < _items.Count; i++)
-            if (_items[i].CurrentCount == _items[i].Stack)
-                items.Remove(_items[i]);
-
-        var result = items.GroupBy(x => x.Id)
-              .Where(g => g.Count() > 1)
-              .Select(y => y.Key)
-              .ToList();
-
-        if (result.Count < _minCountItems)
-            InventoryChangeFailed?.Invoke(_stackingItemsFailedMessage);
-        else
-            MergeItems(result, items);
+        _stackingController.TryMergeItems(_items);
     }
 
-    private void MergeItems(List<int> ids, List<InventoryItem> items)
+    private void OnStackingSuccesed(InventoryItem item)
     {
-        int random = _randomizer.GetRandomInteger(0, ids.Count);
-        List<InventoryItem> tempItems = items.FindAll(x => x.Id == ids[random]);
+        if (item.CurrentCount <= 0)
+            RemoveItem(item);
+    }
 
-        int randomItemOne = _randomizer.GetRandomInteger(0, tempItems.Count);
-        InventoryItem itemOne = tempItems[randomItemOne];
-        tempItems.Remove(itemOne);
-
-        int randomItemTwo = _randomizer.GetRandomInteger(0, tempItems.Count);
-        InventoryItem itemTwo = tempItems[randomItemTwo];
-
-        var sum = itemOne.CurrentCount + itemTwo.CurrentCount;
-        var remains = sum - itemOne.Stack;
-        var targetValue = remains > 0 ? itemTwo.CurrentCount - remains : itemTwo.CurrentCount;
-
-        itemOne.AddValue(targetValue);
-        itemTwo.RemoveValue(targetValue);
-
-        if (itemTwo.CurrentCount <= 0)
-            RemoveItem(itemTwo);
-
-        InventoryChanged?.Invoke();
+    private void OnStackingFailed()
+    {
+        InventoryChangeFailed?.Invoke(_stackingItemsFailedMessage);
     }
     #endregion
 }

@@ -10,7 +10,7 @@ public class InventoryItem
     public int CurrentCount { get; private set; }
     public Sprite Icon { get; private set; }
 
-    public event Action<int> ValueRemains;
+    public event Action ValueChanged;
 
     public InventoryItem(InventoryItemConfig config)
     {
@@ -28,6 +28,8 @@ public class InventoryItem
 
         if (CurrentCount > Stack)
             CurrentCount = Stack;
+
+        ValueChanged?.Invoke();
     }
 
     public void RemoveValue(int value)
@@ -36,5 +38,7 @@ public class InventoryItem
 
         if (CurrentCount < 0)
             CurrentCount = 0;
+
+        ValueChanged?.Invoke();
     }
 }

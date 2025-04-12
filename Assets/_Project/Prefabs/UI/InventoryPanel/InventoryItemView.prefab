@@ -128,6 +128,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   _icon: {fileID: 7989553690810460365}
   _countText: {fileID: 4950079314309412224}
+  _woundedColor: {r: 1, g: 0, b: 0, a: 1}
+  _viewTransform: {fileID: 7198207975160325490}
+  _animateDuration: 0.25
 --- !u!1 &4583753961893554329
 GameObject:
   m_ObjectHideFlags: 0

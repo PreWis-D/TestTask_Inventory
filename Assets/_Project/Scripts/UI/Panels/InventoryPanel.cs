@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using UnityEngine;
 using Zenject;
 
@@ -22,44 +23,47 @@ public class InventoryPanel : BasePanel
 
     public override void Init()
     {
-        _inventoryStorage.InventoryChanged += UpdateInfo;
+        _inventoryStorage.InventoryItemAdded += OnItemAdded;
+        _inventoryStorage.InventoryItemRemoved += OnItemRemoved;
+        _inventoryStorage.AnimalStateChanged += OnAnimalStateChanged;
     }
 
-    public void UpdateInfo()
+    private void OnItemAdded(InventoryItem item)
     {
-        var inventoryItems = _inventoryStorage.GetInventoryItems();
-        TryRemoveExcess(inventoryItems);
-
-        for (int i = 0; i < inventoryItems.Count; i++)
-        {
-            if (_items.Count <= i)
-                CreateItem(inventoryItems[i]);
-            else
-                _items[i].UpdateInfo(inventoryItems[i]);
-        }
+        AddItem(item);
     }
 
-    private void TryRemoveExcess(List<InventoryItem> inventoryItems)
+    private void OnItemRemoved(InventoryItem item)
     {
-        var remains = _items.Count - inventoryItems.Count;
-
-        for (int i = 0; i < remains; i++)
-        {
-            _poolManager.SetPool(_items[i]);
-            _items.RemoveAt(i);
-        }
+        RemoveItem(item);
     }
 
-    private void CreateItem(InventoryItem inventoryItem)
+    private void OnAnimalStateChanged(InventoryItem item)
+    {
+        var itemView = _items.Find(x => x.Item == item);
+        itemView.UpdateInfo();
+    }
+
+    private void AddItem(InventoryItem inventoryItem)
     {
         var itemView = _poolManager.GetPool(_inventoryItemViewPrefab, Vector3.zero);
         itemView.transform.SetParent(_itemViewsContainer);
-        itemView.UpdateInfo(inventoryItem);
+        itemView.Init(inventoryItem);
         _items.Add(itemView);
+        itemView.Spawn();
+    }
+
+    private void RemoveItem(InventoryItem item)
+    {
+        var itemView = _items.Find(x => x.Item == item);
+        _items.Remove(itemView);
+        itemView.Despawn(_poolManager);
     }
 
     private void OnDestroy()
     {
-        _inventoryStorage.InventoryChanged -= UpdateInfo;
+        _inventoryStorage.InventoryItemAdded -= OnItemAdded;
+        _inventoryStorage.InventoryItemRemoved -= OnItemRemoved;
+        _inventoryStorage.AnimalStateChanged -= OnAnimalStateChanged;
     }
 }
