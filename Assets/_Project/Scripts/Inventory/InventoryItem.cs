@@ -3,23 +3,29 @@ using UnityEngine;
 
 public class InventoryItem
 {
-    public InventoryItemType Type { get; private set; }
-    public string Name { get; private set; }
-    public int Id { get; private set; }
-    public int Stack { get; private set; }
-    public int CurrentCount { get; private set; }
-    public Sprite Icon { get; private set; }
+    public InventoryItemType Type;
+    public string Name;
+    public int Id;
+    public int Stack;
+    public int CurrentCount;
+    public Sprite Icon;
 
-    public event Action ValueChanged;
+    public event Action ValueAdded;
+    public event Action ValueRemoved;
 
-    public InventoryItem(InventoryItemConfig config)
+    public void Init(InventoryItemType type,
+        string name,
+        int id,
+        int stack,
+        int startValue,
+        Sprite sprite)
     {
-        Type = config.ItemType;
-        Name = config.Name;
-        Id = config.Id;
-        Stack = config.Stack;
-        CurrentCount = config.StartValue;
-        Icon = config.Icon;
+        Type = type;
+        Name = name;
+        Id = id;
+        Stack = stack;
+        CurrentCount = startValue;
+        Icon = sprite;
     }
 
     public void AddValue(int value)
@@ -29,7 +35,7 @@ public class InventoryItem
         if (CurrentCount > Stack)
             CurrentCount = Stack;
 
-        ValueChanged?.Invoke();
+        ValueAdded?.Invoke();
     }
 
     public void RemoveValue(int value)
@@ -39,6 +45,6 @@ public class InventoryItem
         if (CurrentCount < 0)
             CurrentCount = 0;
 
-        ValueChanged?.Invoke();
+        ValueRemoved?.Invoke();
     }
 }

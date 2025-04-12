@@ -1,14 +1,18 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using Unity.VisualScripting.FullSerializer;
 using UnityEngine;
 using Zenject;
 
 public class InventoryStorage
 {
+    private GameConfig _gameConfig;
+    private Randomizer _randomizer;
+    private PlayerSaver _playerSaver;
+
     private List<InventoryItem> _items = new List<InventoryItem>();
     private List<InventoryItemConfig> _itemConfigs = new List<InventoryItemConfig>();
-    private Randomizer _randomizer;
     private StackingController _stackingController;
 
     private int _maxItemsCount;
@@ -25,23 +29,36 @@ public class InventoryStorage
     public event Action<string> InventoryChangeFailed;
 
     [Inject]
-    private void Construct(GameConfig gameConfig, Randomizer randomizer)
+    private void Construct(GameConfig gameConfig, Randomizer randomizer, PlayerSaver playerSaver)
     {
-        _maxItemsCount = gameConfig.InventoryItemConfigsPack.MaxItemsCount;
-        _itemConfigs.AddRange(gameConfig.InventoryItemConfigsPack.Configs);
+        _gameConfig = gameConfig;
         _randomizer = randomizer;
+        _playerSaver = playerSaver;
     }
 
     public void Init()
     {
+        _maxItemsCount = _gameConfig.InventoryItemConfigsPack.MaxItemsCount;
+        _itemConfigs.AddRange(_gameConfig.InventoryItemConfigsPack.Configs);
+
         _stackingController = new StackingController(_randomizer, _minCountItems);
         _stackingController.StackingSuccesed += OnStackingSuccesed;
         _stackingController.StackingFailed += OnStackingFailed;
+
+        LoadItems();
     }
 
-    public List<InventoryItem> GetInventoryItems()
+    private void LoadItems()
     {
-        return _items;
+        List<InventoryItem> loadItems = _playerSaver.LoadInventory();
+
+        for (int i = 0; i < loadItems.Count; i++)
+        {
+            var item = GetInventoryItem(loadItems[i].Type);
+            item.Init(loadItems[i].Type, loadItems[i].Name, loadItems[i].Id, loadItems[i].Stack, loadItems[i].CurrentCount, loadItems[i].Icon);
+            _items.Add(item);
+            InventoryItemAdded?.Invoke(item);
+        }
     }
 
     #region Add item
@@ -70,17 +87,20 @@ public class InventoryStorage
 
     private void AddItem(InventoryItemConfig config)
     {
-        var item = GetInventoryItem(config);
+        var item = GetInventoryItem(config.ItemType);
+        item.Init(config.ItemType, config.Name, config.Id, config.Stack, config.StartValue, config.Icon);
         _items.Add(item);
         InventoryItemAdded?.Invoke(item);
+
+        SaveInventory();
     }
 
-    private InventoryItem GetInventoryItem(InventoryItemConfig config)
+    private InventoryItem GetInventoryItem(InventoryItemType itemType)
     {
-        return config.ItemType switch
+        return itemType switch
         {
-            InventoryItemType.Animal => new AnimalItem(config),
-            _ => new InventoryItem(config),
+            InventoryItemType.Animal => new AnimalItem(),
+            _ => new InventoryItem(),
         };
     }
 
@@ -111,6 +131,8 @@ public class InventoryStorage
     {
         _items.Remove(inventoryItem);
         InventoryItemRemoved?.Invoke(inventoryItem);
+
+        SaveInventory();
     }
 
     private InventoryItem GetRandomItem(List<InventoryItem> items)
@@ -141,6 +163,8 @@ public class InventoryStorage
         var animalItem = items[randomIndex] as AnimalItem;
         animalItem.ChangeState();
         AnimalStateChanged?.Invoke(animalItem);
+
+        SaveInventory();
     }
     #endregion
 
@@ -154,6 +178,8 @@ public class InventoryStorage
     {
         if (item.CurrentCount <= 0)
             RemoveItem(item);
+
+        SaveInventory();
     }
 
     private void OnStackingFailed()
@@ -161,4 +187,9 @@ public class InventoryStorage
         InventoryChangeFailed?.Invoke(_stackingItemsFailedMessage);
     }
     #endregion
+
+    private void SaveInventory()
+    {
+        _playerSaver.SaveInventory(_items);
+    }
 }

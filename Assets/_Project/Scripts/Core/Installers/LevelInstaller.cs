@@ -11,6 +11,7 @@ public class LevelInstaller : MonoInstaller
         BindPoolManager();
         BindInventoryStorage();
         BindRandomizer();
+        BindPlayerSaver();
     }
 
     private void BindUIHandler()
@@ -31,5 +32,10 @@ public class LevelInstaller : MonoInstaller
     private void BindRandomizer()
     {
         Container.Bind<Randomizer>().AsSingle();
+    }
+
+    private void BindPlayerSaver()
+    {
+        Container.Bind<PlayerSaver>().AsSingle();
     }
 }

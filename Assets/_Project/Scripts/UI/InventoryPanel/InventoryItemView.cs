@@ -1,4 +1,6 @@
-﻿using DG.Tweening;
+﻿using Coffee.UIExtensions;
+using DG.Tweening;
+using System;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -9,10 +11,12 @@ public class InventoryItemView : MonoBehaviour
     [SerializeField] private Image _icon;
     [SerializeField] private TMP_Text _countText;
     [SerializeField] private Color _woundedColor = Color.red;
+    [SerializeField] private UIParticle _uiParticle;
 
     [Space(10)]
     [Header("Animation settings")]
     [SerializeField] private Transform _viewTransform;
+    [SerializeField] private Vector3 _mergeScale = new Vector3(1.25f, 1.25f, 1.25f);
     [SerializeField] private float _animateDuration = 0.25f;
 
     private Draggable _draggable;
@@ -23,17 +27,19 @@ public class InventoryItemView : MonoBehaviour
 
     private void Awake()
     {
-        _draggable = GetComponent<Draggable>();    
+        _draggable = GetComponent<Draggable>();
     }
 
     public void Init(InventoryItem item, Transform placeHolder, RectTransform gridRect, float weightSpacing)
-    { 
+    {
         Item = item;
         _icon.sprite = Item.Icon;
 
-        Item.ValueChanged += UpdateInfo;
+        Item.ValueAdded += OnValueAdded;
 
         _draggable.Init(placeHolder, gridRect, weightSpacing);
+
+        _uiParticle.gameObject.SetActive(false);
 
         UpdateInfo();
     }
@@ -69,6 +75,20 @@ public class InventoryItemView : MonoBehaviour
         });
     }
 
+    private void OnValueAdded()
+    {
+        UpdateInfo();
+
+        _uiParticle.gameObject.SetActive(false);
+        _uiParticle.gameObject.SetActive(true);
+
+        _tween.Kill();
+        _tween = _viewTransform
+            .DOScale(Vector3.one, _animateDuration)
+            .From(_mergeScale)
+            .SetEase(Ease.OutBack);
+    }
+
     private void TryChangeAnimalState(InventoryItem item)
     {
         var animalItem = item as AnimalItem;
@@ -78,6 +98,6 @@ public class InventoryItemView : MonoBehaviour
     private void OnDestroy()
     {
         _tween.Kill();
-        Item.ValueChanged -= UpdateInfo;
+        Item.ValueAdded -= UpdateInfo;
     }
 }

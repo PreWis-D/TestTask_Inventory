@@ -1,11 +1,8 @@
-﻿public class AnimalItem : InventoryItem
-{
-    public AnimalState State { get; private set; }
+﻿using UnityEngine;
 
-    public AnimalItem(InventoryItemConfig config) : base(config)
-    {
-        State = AnimalState.Healthy;
-    }
+public class AnimalItem : InventoryItem
+{
+    public AnimalState State = AnimalState.Healthy;
 
     public void ChangeState()
     {
