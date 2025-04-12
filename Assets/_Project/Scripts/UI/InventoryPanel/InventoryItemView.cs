@@ -3,6 +3,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
+[RequireComponent(typeof(Draggable))]
 public class InventoryItemView : MonoBehaviour
 {
     [SerializeField] private Image _icon;
@@ -14,17 +15,25 @@ public class InventoryItemView : MonoBehaviour
     [SerializeField] private Transform _viewTransform;
     [SerializeField] private float _animateDuration = 0.25f;
 
+    private Draggable _draggable;
     private Color _healthyColor = Color.white;
     private Tween _tween;
 
     public InventoryItem Item { get; private set; }
 
-    public void Init(InventoryItem item)
+    private void Awake()
     {
+        _draggable = GetComponent<Draggable>();    
+    }
+
+    public void Init(InventoryItem item, Transform placeHolder, RectTransform gridRect, float weightSpacing)
+    { 
         Item = item;
         _icon.sprite = Item.Icon;
 
         Item.ValueChanged += UpdateInfo;
+
+        _draggable.Init(placeHolder, gridRect, weightSpacing);
 
         UpdateInfo();
     }

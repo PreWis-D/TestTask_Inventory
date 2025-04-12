@@ -86,6 +86,8 @@ GameObject:
   m_Component:
   - component: {fileID: 1963253976650513076}
   - component: {fileID: 2329559675564591579}
+  - component: {fileID: 3047657092540858744}
+  - component: {fileID: 7302608714887012644}
   m_Layer: 0
   m_Name: InventoryItemView
   m_TagString: Untagged
@@ -131,6 +133,30 @@ MonoBehaviour:
   _woundedColor: {r: 1, g: 0, b: 0, a: 1}
   _viewTransform: {fileID: 7198207975160325490}
   _animateDuration: 0.25
+--- !u!225 &3047657092540858744
+CanvasGroup:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1893780826120113407}
+  m_Enabled: 1
+  m_Alpha: 1
+  m_Interactable: 1
+  m_BlocksRaycasts: 1
+  m_IgnoreParentGroups: 0
+--- !u!114 &7302608714887012644
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1893780826120113407}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f99c8672a14b4cf48b9b0d28a56d9e0f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &4583753961893554329
 GameObject:
   m_ObjectHideFlags: 0

@@ -1,11 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 using Zenject;
 
 public class InventoryPanel : BasePanel
 {
+    [SerializeField] private ScrollRect _scrollRect;
+    [SerializeField] private Transform _placeHolder;
     [SerializeField] private Transform _itemViewsContainer;
+    [SerializeField] private DropZone _dropZone;
 
     private List<InventoryItemView> _items = new List<InventoryItemView>();
 
@@ -23,6 +27,8 @@ public class InventoryPanel : BasePanel
 
     public override void Init()
     {
+        _dropZone.Init(_scrollRect, _placeHolder);
+
         _inventoryStorage.InventoryItemAdded += OnItemAdded;
         _inventoryStorage.InventoryItemRemoved += OnItemRemoved;
         _inventoryStorage.AnimalStateChanged += OnAnimalStateChanged;
@@ -48,9 +54,11 @@ public class InventoryPanel : BasePanel
     {
         var itemView = _poolManager.GetPool(_inventoryItemViewPrefab, Vector3.zero);
         itemView.transform.SetParent(_itemViewsContainer);
-        itemView.Init(inventoryItem);
+        itemView.Init(inventoryItem, _placeHolder, _dropZone.RectTransform, _dropZone.GridLayoutGroup.spacing.x);
         _items.Add(itemView);
         itemView.Spawn();
+
+        UpdateScrollIntarectableState();
     }
 
     private void RemoveItem(InventoryItem item)
@@ -58,6 +66,14 @@ public class InventoryPanel : BasePanel
         var itemView = _items.Find(x => x.Item == item);
         _items.Remove(itemView);
         itemView.Despawn(_poolManager);
+
+        UpdateScrollIntarectableState();
+    }
+
+    private void UpdateScrollIntarectableState()
+    {
+        var isIntaractable = _dropZone.RectTransform.rect.height > _scrollRect.GetComponent<RectTransform>().rect.height;
+        _scrollRect.enabled = isIntaractable;
     }
 
     private void OnDestroy()
